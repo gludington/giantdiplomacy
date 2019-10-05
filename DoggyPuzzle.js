@@ -1,10 +1,11 @@
 var GiantDiplomacyPuzzle = GiantDiplomacyPuzzle || (function() {
+    //TODO support multiple puzzles
 
-	// a hash to hold multiple puzzles by the id of the root node (the controlling image)
     const puzzles = { }
 
     function createPuzzle(options) {
         const root = () => {
+            log("root from " + options.root)
             return getObj('graphic', options.root);
         }
 
@@ -191,7 +192,8 @@ var GiantDiplomacyPuzzle = GiantDiplomacyPuzzle || (function() {
                 height: conf.height,
                 imgsrc: conf.imgsrc,
                 pageid: Campaign().get("playerpageid"),
-                layer: "objects"
+                layer: "objects",
+                controlledby: "all"
             })
         }
 
@@ -245,6 +247,12 @@ var GiantDiplomacyPuzzle = GiantDiplomacyPuzzle || (function() {
                     }
                 });
             },
+            restore: function() {
+                const resetRoot = root();
+                [orange, purple, pink, green, blue, red, yellow].forEach(component => {
+                    log(component);
+                })
+            },
             moveAll: function(deltaLeft, deltaTop) {
                 Object.getOwnPropertyNames(this).forEach((prop) => {
                     if (typeof this[prop] !== 'function') {
@@ -274,6 +282,7 @@ var GiantDiplomacyPuzzle = GiantDiplomacyPuzzle || (function() {
     const normalizeSelected = (selected) => {
         let ids;
         if (selected === undefined) {
+            log('no selected');
         } else {
             ids = selected.map((sel) => {
                 return sel._id;
@@ -311,19 +320,34 @@ var GiantDiplomacyPuzzle = GiantDiplomacyPuzzle || (function() {
         }
     }
 
+    const restorePuzzle = (selected) => {
+        const ids = normalizeSelected(selected);
+        if (ids) {
+            ids.forEach(id => {
+                if (puzzles[id]) {
+                    puzzles[id].restore();
+                }
+            });
+        }
+    }
+
     const handleInput = function(msg) {
         if (msg.type !== "api") {
             return;
         }
-        const mode = msg.content.match(/^!puzzle (--reset|--solve|--destroy)/);
+        const mode = msg.content.match(/^!puzzle (--reset|--solve|--destroy|--restore)/);
         if (mode && mode[1]) {
             if (mode[1] === '--solve') {
-                const type = msg.content.match(/^.*--solve --(cat|diamond|house)/);
-                solve(type && type[1] ? type[1] : 'cat', msg.selected);
+                if (playerIsGM(msg.playerid)) {
+                    const type = msg.content.match(/^.*--solve --(cat|diamond|house)/);
+                    solve(type && type[1] ? type[1] : 'cat', msg.selected);
+                }
             } else if (mode[1] === '--reset') {
                 reset(msg.selected);
             } else if (mode[1] === '--destroy') {
                 removePuzzle(msg.selected);
+            } else if (mode[1] === '--restore') {
+                restorePuzzle(msg.selected);
             }
         }
     }
@@ -338,12 +362,27 @@ var GiantDiplomacyPuzzle = GiantDiplomacyPuzzle || (function() {
                     puzzles[added.get("id")] = createPuzzle({
                         root: added.get("id"),
                     })
+                    added.set("controlledby", "all");
+                    character.set("controlledby", "all");
                 }
             }
         });
         on('destroy:graphic', (destroyed) => {
-            if (puzzles[destroyed.get("id")]) {
-                puzzles[destroyed.get("id")].destroy();
+            const destroyedId = destroyed.get("id");
+            if (puzzles[destroyedId]) {
+                puzzles[destroyedId].destroy();
+            } else {
+                Object.getOwnPropertyNames(puzzles).forEach(rootId => {
+                    Object.getOwnPropertyNames(puzzles[rootId]).forEach(componentName => {
+                        if (typeof puzzles[rootId][componentName] !== 'function') {
+                            if (destroyedId === puzzles[rootId][componentName].get("id")) {
+                                delete puzzles[rootId][componentName];
+                                puzzles[rootId][componentName] = createPiece
+                            }
+                        }
+
+                    })
+                });
             }
         });
 
