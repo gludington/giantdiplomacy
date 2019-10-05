@@ -372,17 +372,7 @@ var GiantDiplomacyPuzzle = GiantDiplomacyPuzzle || (function() {
             if (puzzles[destroyedId]) {
                 puzzles[destroyedId].destroy();
             } else {
-                Object.getOwnPropertyNames(puzzles).forEach(rootId => {
-                    Object.getOwnPropertyNames(puzzles[rootId]).forEach(componentName => {
-                        if (typeof puzzles[rootId][componentName] !== 'function') {
-                            if (destroyedId === puzzles[rootId][componentName].get("id")) {
-                                delete puzzles[rootId][componentName];
-                                puzzles[rootId][componentName] = createPiece
-                            }
-                        }
-
-                    })
-                });
+                log('no protection against puzzle piece deletion yet')
             }
         });
 
