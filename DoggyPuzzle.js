@@ -100,7 +100,7 @@ var GiantDiplomacyPuzzle = GiantDiplomacyPuzzle || (function() {
             },
             diamond: {
                 purple: {
-                    leftOffset: 200,
+                    leftOffset: 250,
                     topOffset: 100,
                     rotation: 90
                 },
